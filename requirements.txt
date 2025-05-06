@@ -1,2 +1,4 @@
 fastapi
 uvicorn
+spacy==3.8.5
+pytest
