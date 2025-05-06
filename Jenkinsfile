@@ -2,43 +2,45 @@ pipeline {
     agent {
         docker {
             image 'tiangolo/uvicorn-gunicorn-fastapi:python3.10'
-            args '-u root:root'
+            args '-u root:root' // pour éviter les problèmes de permissions
         }
     }
 
     environment {
-        PYTHONUNBUFFERED = 1
+        PIP_NO_CACHE_DIR = 'false'
+        PIP_DISABLE_PIP_VERSION_CHECK = '1'
+        PIP_ROOT_USER_ACTION = 'ignore'
     }
 
     stages {
         stage('Checkout') {
             steps {
+                echo '📦 Récupération du code source...'
                 checkout scm
             }
         }
 
-        stage('Install') {
+        stage('Install dependencies') {
             steps {
-                echo '🔧 Installation des dépendances Python...'
+                echo '🔧 Installation des dépendances...'
                 sh '''
                     pip install --upgrade pip
-                    pip install numpy==1.24.4
                     pip install -r requirements.txt
                     python -m spacy download en_core_web_sm
                 '''
             }
         }
 
-        stage('Test') {
+        stage('Tests') {
             steps {
-                echo '🧪 Lancement des tests unitaires...'
+                echo '🧪 Exécution des tests...'
                 sh 'pytest tests'
             }
         }
 
         stage('Docker Build') {
             steps {
-                echo '🐳 Build de l\'image Docker...'
+                echo '🐳 Construction de l’image Docker...'
                 sh 'docker build -t text-analyzer-api .'
             }
         }
@@ -53,15 +55,14 @@ pipeline {
 
     post {
         always {
-            echo '🧹 Nettoyage des fichiers temporaires...'
-            // Exécuter le nettoyage uniquement si Docker est installé
-            sh 'command -v docker >/dev/null 2>&1 && docker system prune -af --volumes || echo "Docker non trouvé, nettoyage ignoré."'
+            echo '🧹 Nettoyage...'
+            sh 'docker system prune -af --volumes || true'
         }
         failure {
-            echo '❌ Une erreur est survenue dans la pipeline.'
+            echo '❌ Échec de la pipeline.'
         }
         success {
-            echo '✅ Pipeline terminée avec succès !'
+            echo '✅ Pipeline terminée avec succès.'
         }
     }
 }
