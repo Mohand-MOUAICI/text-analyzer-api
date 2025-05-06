@@ -1,17 +1,20 @@
-# Étape 1 : Base Python avec pip et wheel
-FROM python:3.10-slim AS base
+FROM python:3.10-slim
 
 # Définir le répertoire de travail
 WORKDIR /app
 
-# Copier les fichiers nécessaires
-COPY requirements.txt .
-RUN pip install --upgrade pip \
-    && pip install -r requirements.txt \
-    && python -m spacy download en_core_web_sm
-
-# Copier le reste de l'application
+# Copier les fichiers
 COPY . .
 
-# Commande de démarrage par défaut
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
+# Mettre à jour pip
+RUN pip install --upgrade pip
+
+# Installer les dépendances
+RUN pip install -r requirements.txt && \
+    python -m spacy download en_core_web_sm
+
+# Exposer le port de l'API
+EXPOSE 8000
+
+# Commande de lancement
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
